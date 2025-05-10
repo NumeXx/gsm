@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	// "os/exec" // Tidak lagi dipakai langsung di sini
 	// "runtime" // Tidak lagi dipakai langsung di sini
@@ -70,43 +69,9 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var addCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Add or update gsocket connection configurations",
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := config.Load(); err != nil {
-			fmt.Printf("Warning: Problem loading existing config (%v). Operations will proceed on a potentially empty/new configuration.\n", err)
-		}
-
-		var name, key, tagRaw string
-		fmt.Print("Connection name: ")
-		fmt.Scanln(&name)
-		fmt.Print("GSocket key (-s value): ")
-		fmt.Scanln(&key)
-		fmt.Print("Tags (comma separated, e.g., work,personal): ")
-		fmt.Scanln(&tagRaw)
-		tags := []string{}
-		if strings.TrimSpace(tagRaw) != "" { // Perlu import "strings" jika belum ada
-			tagParts := strings.Split(tagRaw, ",")
-			for _, t := range tagParts {
-				tags = append(tags, strings.TrimSpace(t))
-			}
-		}
-		newConn := config.Connection{Name: name, Key: key, Tags: tags, Usage: 0}
-		config.AddConnection(newConn)
-
-		if err := config.Save(); err != nil {
-			fmt.Println("ERROR: Failed to save config:", err)
-			os.Exit(1)
-		}
-		fmt.Println("✅ Config saved successfully to", config.DefaultConfigFilePath)
-	},
-}
-
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	rootCmd.AddCommand(addCmd)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

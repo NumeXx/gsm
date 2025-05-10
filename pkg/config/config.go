@@ -98,4 +98,14 @@ func UpdateConnectionByIndex(index int, updatedConn Connection) error {
 	return Save() // Langsung simpan setelah update di memori
 }
 
+// DeleteConnectionByIndex menghapus koneksi pada indeks tertentu dan menyimpan ke file.
+// Mengembalikan error jika indeks di luar jangkauan atau jika gagal menyimpan.
+func DeleteConnectionByIndex(index int) error {
+	if index < 0 || index >= len(currentConfig.Connections) {
+		return fmt.Errorf("index %d out of bounds for connections list (len %d)", index, len(currentConfig.Connections))
+	}
+	currentConfig.Connections = append(currentConfig.Connections[:index], currentConfig.Connections[index+1:]...)
+	return Save()
+}
+
 // TODO: Tambahkan fungsi DeleteConnection jika diperlukan.

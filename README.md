@@ -2,19 +2,23 @@
 
 **Connect like there's no firewall, but with style and a kick-ass TUI!**
 
-GSM (GSocket Manager) is a sleek, terminal-based ankkutilitas/manajer to streamline your `gsocket` (Global Socket) connections. Inspired by the simplicity of tools like `ssm` (Secure Shell Manager), GSM brings a user-friendly Terminal User Interface (TUI) to the world of `gsocket`, making it a breeze to manage, connect to, and organize your secure, firewall-bypassing endpoints.
+GSM (GSocket Manager) is a sleek, terminal-based utility to streamline your `gsocket` (Global Socket) connections. Inspired by the simplicity of tools like `ssm` (Secure Shell Manager), GSM brings a user-friendly Terminal User Interface (TUI) to the world of `gsocket`, making it a breeze to manage, connect to, and organize your secure, firewall-bypassing endpoints.
 
 Stop fumbling with long `gs-netcat` commands and cryptic keys. With GSM, all your `gsocket` connections are just a few keystrokes away.
 
 ## ✨ Features
 
 *   **Intuitive TUI:** A clean and efficient terminal interface built with BubbleTea to manage your connections.
-*   **Connection Management:** Easily add, (and soon edit/delete) your `gsocket` connection configurations.
-*   **Quick Connect:** Select a connection from the list and hit Enter – you're in!
-*   **Configuration Storage:** Connections are stored मानव-readable JSON format (`~/.gsm/config.json`).
-*   **Tagging Support:** Organize your connections with tags for better filtering and identification (filtering coming soon!).
-*   **(Planned) Real-time Filtering:** Quickly find connections by name or tag.
-*   **(Planned) In-TUI Configuration Editing:** Modify your connections without leaving GSM.
+*   **Full In-TUI Connection Management:**
+    *   **Add (`a` key):** Add new GSocket connections directly within the TUI.
+    *   **Edit (`e` key):** Modify existing connections (name, key, tags) seamlessly.
+    *   **Delete (`d` key):** Remove connections with a confirmation step.
+*   **Quick Connect:** Select a connection from the list and hit `Enter` – you're in!
+*   **Real-time Filtering:** Simply type to filter connections by name or tags. Press `Esc` to clear the filter.
+*   **Configuration Storage:** Connections are stored in a human-readable JSON format (`~/.gsm/config.json`).
+*   **Tagging Support:** Organize your connections with tags.
+*   **(Planned) More advanced filtering and sorting options.**
+*   **(Planned) In-TUI 'View Details' بدون masuk mode edit.**
 
 ## 🚀 Getting Started
 
@@ -41,26 +45,33 @@ Stop fumbling with long `gs-netcat` commands and cryptic keys. With GSM, all you
     # sudo mv gsm /usr/local/bin/
     ```
 
-### Quick Usage
+### Quick Usage & TUI Keybindings
 
-1.  **Add your first GSocket connection:**
-    ```bash
-    gsm config
-    ```
-    Follow the prompts to enter:
-    *   **Connection name:** A friendly name for your connection (e.g., `my-remote-server`).
-    *   **GSocket key (-s value):** The secret key for your `gsocket` endpoint.
-    *   **Tags (comma separated):** Optional tags to help you organize (e.g., `work,bastion,dev`).
-
-2.  **Launch GSM TUI:**
+1.  **Launch GSM TUI:**
     ```bash
     gsm
     ```
-    Navigate the list using arrow keys (↑/↓), and press `Enter` to connect to the selected GSocket endpoint. Press `q` or `Ctrl+C` to quit.
+    The TUI will launch, displaying your GSocket connections.
+
+2.  **Navigating the List:**
+    *   **`↑` / `↓`**: Navigate up and down the connection list.
+    *   **`Enter`**: Connect to the selected GSocket endpoint.
+    *   **`q` / `Ctrl+C`**: Quit GSM.
+
+3.  **Filtering Connections:**
+    *   **Type to Filter**: Simply start typing any part of the connection's name or tags. The list will filter obstáculos real-time.
+    *   **`Esc` (while filtering)**: Clear the current filter and show all connections.
+
+4.  **Managing Connections (from the list view):**
+    *   **`a`**: Add a new GSocket connection. This will open a form.
+        *   In the form: Use `Tab` / `Shift+Tab` to navigate fields. `Enter` to save, `Esc` to cancel.
+    *   **`e`**: Edit the selected GSocket connection. This will open a form pre-filled with the connection's details.
+        *   In the form: Use `Tab` / `Shift+Tab` to navigate fields. `Enter` to save, `Esc` to cancel.
+    *   **`d`**: Delete the selected GSocket connection. A confirmation prompt (`y/N`) will appear.
 
 ## 🛠️ Configuration
 
-GSM stores its configuration in `~/.gsm/config.json`. It's a simple JSON file you can also edit manually if needed (though using `gsm config` is recommended).
+GSM stores its configuration in `~/.gsm/config.json`. It's a simple JSON file. While you can edit it manually, using the in-TUI features (`a` to add, `e` to edit) is now the recommended way.
 
 **Example `config.json`:**
 ```json
@@ -84,7 +95,7 @@ GSM stores its configuration in `~/.gsm/config.json`. It's a simple JSON file yo
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/NumeXx/gsm/issues) (if you have one).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/NumeXx/gsm/issues).
 
 1.  Fork the Project
 2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -94,7 +105,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## 📜 License
 
-Distributed under the [MIT License](LICENSE). See `LICENSE` file for more information. (You'll need to add a LICENSE file, MIT is a good default for open source).
+Distributed under the [MIT License](LICENSE). See `LICENSE` file for more information. (Remember to add a `LICENSE` file).
 
 ## 🙏 Acknowledgements
 
