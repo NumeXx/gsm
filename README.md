@@ -19,7 +19,6 @@ Stop fumbling with long `gs-netcat` commands and cryptic keys. With GSM, all you
 *   **Real-time Filtering:** Simply type to filter connections by name or tags. Press `Esc` to clear the filter.
 *   **Configuration Storage:** Connections are stored in a human-readable JSON format (`~/.gsm/config.json`).
 *   **Tagging Support:** Organize your connections with tags.
-*   **(Planned) More advanced filtering and sorting options.**
 
 ## 🚀 Getting Started
 
@@ -105,13 +104,10 @@ GSM stores its configuration in `~/.gsm/config.json`. It's a simple JSON file. W
     *   Sort connections by name, last used, or usage count.
     *   More specific search queries (e.g., `tag:work status:active`).
 *   **In-TUI 'View Details':** Display connection details without entering edit mode (e.g., with `ctrl+v`).
-*   **Automatic Config Reload:** Use `fsnotify` to detect external changes to `config.json` and reload the TUI.
 *   **UI Polish:**
     *   Optional borders around the list.
     *   Auto-clearing status messages (success/error).
     *   More theme/color options.
-*   **Import/Export Configurations.**
-*   **Password Protection for Keys (Optional):** Encrypt keys stored in `config.json`.
 
 ## 🤝 Contributing
 
