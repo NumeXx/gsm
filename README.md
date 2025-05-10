@@ -24,7 +24,7 @@ Stop fumbling with long `gs-netcat` commands and cryptic keys. With GSM, all you
 
 ### Prerequisites
 
-*   Go (version 1.18+ recommended)
+*   Go (Golang)
 *   `gs-netcat` (from the [gsocket](https://github.com/hackerschoice/gsocket) suite) must be installed and in your system's PATH.
 
 ### Installation
