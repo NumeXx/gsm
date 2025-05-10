@@ -59,7 +59,7 @@ Stop fumbling with long `gs-netcat` commands and cryptic keys. With GSM, all you
     *   **`q` / `Ctrl+C`**: Quit GSM.
 
 3.  **Filtering Connections:**
-    *   **Type to Filter**: Simply start typing any part of the connection's name or tags. The list will filter obstáculos real-time.
+    *   **Type `/` to Filter**: Simply start typing any part of the connection's name or tags. The list will filter obstáculos real-time.
     *   **`Esc` (while filtering)**: Clear the current filter and show all connections.
 
 4.  **Managing Connections (from the list view):**
