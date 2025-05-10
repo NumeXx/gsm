@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	// "time" // Tidak dipakai lagi untuk auto-clear status
-
 	"github.com/NumeXx/gsm/pkg/config"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -13,20 +11,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// ChosenConnectionGlobal adalah variabel package-level untuk menyimpan koneksi yang dipilih.
-// Ini akan di-set oleh Update() dan dibaca oleh cmd/gsm/main.go setelah TUI quit.
-var ChosenConnectionGlobal *Item // Menggunakan tipe Item dari package ini
+var ChosenConnectionGlobal *Item
 
-// Item adalah representasi satu koneksi di TUI list.
-// Ini meng-embed config.Connection untuk mendapatkan field-fieldnya.
 type Item struct {
-	config.Connection // Embed Connection dari pkg/config
+	config.Connection
 }
 
-// Title untuk list.Item interface.
 func (i Item) Title() string { return fmt.Sprintf("Name : %s", i.Name) }
 
-// Description untuk list.Item interface.
 func (i Item) Description() string {
 	if len(i.Tags) == 0 {
 		return "Tag  : -"
@@ -34,54 +26,44 @@ func (i Item) Description() string {
 	return fmt.Sprintf("Tag  : %s", strings.Join(i.Tags, ", "))
 }
 
-// FilterValue untuk list.Item interface.
 func (i Item) FilterValue() string { return i.Name + " " + strings.Join(i.Tags, " ") } // Filter berdasarkan Nama dan Tag
 
-// Konstanta untuk EditFocusIndex
 const (
 	focusEditName = iota
 	focusEditKey
 	focusEditTags
 )
 
-// Konstanta untuk EditingIndexAddNew
 const (
-	EditingIndexAddNew = -2 // Penanda khusus untuk mode Add New
+	EditingIndexAddNew = -2
 )
 
-// StatusMessageType mendefinisikan tipe dari pesan status
 type StatusMessageType int
 
 const (
 	StatusNone StatusMessageType = iota
-	// StatusSuccess // Tidak dipakai lagi
+	StatusSuccess
 	StatusError
 )
 
-// Model adalah BubbleTea model untuk TUI gsm.
 type Model struct {
 	List            list.Model
-	IsEditing       bool            // True jika sedang dalam mode edit
-	EditNameInput   textinput.Model // Input untuk Nama Koneksi
-	EditKeyInput    textinput.Model // Input untuk Key GSocket
-	EditTagsInput   textinput.Model // Input untuk Tags (comma-separated)
-	EditingIndex    int             // Indeks item di cfg.Connections yang sedang diedit, -1 jika tidak ada
-	EditFocusIndex  int             // 0: Name, 1: Key, 2: Tags (untuk navigasi form)
-	lastKnownWidth  int             // Simpen lebar terakhir
-	lastKnownHeight int             // Simpen tinggi terakhir
+	IsEditing       bool
+	EditNameInput   textinput.Model
+	EditKeyInput    textinput.Model
+	EditTagsInput   textinput.Model
+	EditingIndex    int
+	EditFocusIndex  int
+	lastKnownWidth  int
+	lastKnownHeight int
 
-	StatusMessage string            // Pesan status untuk ditampilkan ke user
-	StatusType    StatusMessageType // Tipe pesan status (success, error, none)
-	// statusClearCmd tea.Cmd // Untuk auto-clear message, implementasi nanti
-
-	// State untuk Delete Confirmation
-	IsConfirmingDelete   bool   // True jika sedang dalam mode konfirmasi delete
-	DeleteIndex          int    // Index item di cfg.Connections yang akan dihapus
-	DeleteConnectionName string // Nama koneksi yang akan dihapus (untuk pesan konfirmasi)
+	StatusMessage        string
+	StatusType           StatusMessageType
+	IsConfirmingDelete   bool
+	DeleteIndex          int
+	DeleteConnectionName string
 }
 
-// NewModel membuat instance baru dari TUI Model.
-// Ia menerima Config yang sudah di-load untuk mengisi list.
 func NewModel(cfg config.Config) Model {
 	items := []list.Item{}
 	for _, c := range cfg.Connections {
@@ -92,8 +74,7 @@ func NewModel(cfg config.Config) Model {
 	l.SetFilteringEnabled(true)
 	l.FilterInput.Placeholder = "Filter by name or tag... (type to search)"
 	l.FilterInput.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	l.FilterInput.TextStyle = lipgloss.NewStyle() // Default text style
-	// l.FilterInput.Focus() // Tidak perlu fokus di awal, list yang fokus
+	l.FilterInput.TextStyle = lipgloss.NewStyle()
 
 	// Styling TUI
 	titleStyle := lipgloss.NewStyle().
@@ -118,15 +99,14 @@ func NewModel(cfg config.Config) Model {
 		Padding(0, 1)
 	l.SetDelegate(delegate)
 
-	l.SetShowStatusBar(true)                            // Kita akan coba tampilkan status bar bawaan list untuk filter
-	l.SetStatusBarItemName("connection", "connections") // Custom nama item di status bar
+	l.SetShowStatusBar(true)
+	l.SetStatusBarItemName("connection", "connections")
 	l.Styles.StatusBar = lipgloss.NewStyle().Padding(0, 1).Background(lipgloss.Color("235")).Foreground(lipgloss.Color("242"))
 	l.Styles.FilterPrompt = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	l.Styles.FilterCursor = lipgloss.NewStyle().Foreground(lipgloss.Color("202")) // Kursor filter warna oranye
+	l.Styles.FilterCursor = lipgloss.NewStyle().Foreground(lipgloss.Color("202"))
 
-	l.SetShowHelp(false) // Kita akan handle help text di footer manual jika perlu
+	l.SetShowHelp(false)
 
-	// Inisialisasi TextInputs untuk Mode Edit
 	ni := textinput.New()
 	ni.Placeholder = "Connection Name (required)"
 	ni.CharLimit = 100
@@ -136,9 +116,7 @@ func NewModel(cfg config.Config) Model {
 	ki.Placeholder = "GSocket Key (required)"
 	ki.CharLimit = 256
 	ki.Width = 50
-	// ki.EchoMode = textinput.EchoPassword // Jika ingin menyembunyikan key
-
-	ti := textinput.New() // ti untuk tagsInput
+	ti := textinput.New()
 	ti.Placeholder = "tag1,tag2 (optional)"
 	ti.CharLimit = 200
 	ti.Width = 50
@@ -153,35 +131,26 @@ func NewModel(cfg config.Config) Model {
 		EditTagsInput:        ti,
 		EditingIndex:         -1,
 		EditFocusIndex:       focusEditName,
-		StatusMessage:        "", // Init status message kosong
+		StatusMessage:        "",
 		StatusType:           StatusNone,
 		IsConfirmingDelete:   false,
 		DeleteIndex:          -1,
 		DeleteConnectionName: "",
-		// lastKnownWidth dan lastKnownHeight akan diisi oleh WindowSizeMsg pertama
 	}
 }
 
-// Init untuk BubbleTea model.
 func (m Model) Init() tea.Cmd {
-	// Kita coba kirim command yang mungkin dibutuhin list buat render awal
-	// atau buat refresh viewport-nya.
-	// list.Model.Init() sendiri biasanya return nil, tapi kita bisa coba:
 	return tea.Batch(
-		m.List.StartSpinner(), // Kalo pake spinner, ini bisa jadi pemicu
-		textinput.Blink,       // Kalo ada textinput yang aktif (filter)
-		tea.ClearScreen,       // Coba clear screen dulu (walaupun BubbleTea udah handle alt screen)
+		m.List.StartSpinner(),
+		textinput.Blink,
+		tea.ClearScreen,
 	)
-	// Atau cuma return nil jika tidak ada command khusus yang jelas.
-	// return nil
 }
 
-// Update untuk BubbleTea model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
-	// Handle Konfirmasi Delete dulu jika aktif (override mode lain)
 	if m.IsConfirmingDelete {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -191,43 +160,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.StatusMessage = fmt.Sprintf("Error deleting '%s': %v", m.DeleteConnectionName, err)
 					m.StatusType = StatusError
 				} else {
-					// Pesan sukses tidak ditampilkan sesuai request
-					// m.StatusMessage = fmt.Sprintf("Connection '%s' deleted.", m.DeleteConnectionName)
-					// m.StatusType = StatusSuccess
+					m.StatusMessage = fmt.Sprintf("Connection '%s' deleted.", m.DeleteConnectionName)
+					m.StatusType = StatusSuccess
 				}
 				m.IsConfirmingDelete = false
 				m.DeleteIndex = -1
 				m.DeleteConnectionName = ""
-				if err := config.Load(); err != nil { // Reload config
+				if err := config.Load(); err != nil {
 					m.StatusMessage = fmt.Sprintf("Error reloading config after delete: %v", err)
 					m.StatusType = StatusError
 					return m, nil
 				}
 
-				// REFRESH TUI DENGAN CARA YANG BENER (OPER UKURAN)
 				reloadedCfg := config.GetCurrent()
 				newM := NewModel(reloadedCfg)
-				newM.lastKnownWidth = m.lastKnownWidth // Oper ukuran lama
+				newM.lastKnownWidth = m.lastKnownWidth
 				newM.lastKnownHeight = m.lastKnownHeight
 
-				if newM.lastKnownWidth > 0 && newM.lastKnownHeight > 0 { // Pastiin ukurannya valid
+				if newM.lastKnownWidth > 0 && newM.lastKnownHeight > 0 {
 					newM.List.SetSize(newM.lastKnownWidth, newM.lastKnownHeight-1)
 				}
-				return newM, nil // Return model baru
+				return newM, nil
 			case "n", "esc", "ctrl+c":
 				m.IsConfirmingDelete = false
 				m.DeleteIndex = -1
 				m.DeleteConnectionName = ""
 				m.StatusMessage = "Delete cancelled."
-				m.StatusType = StatusNone // Atau tipe info jika ada
+				m.StatusType = StatusNone
 				return m, nil
 			}
 		}
-		return m, nil // Jika bukan KeyMsg atau key tidak dikenal, jangan lakukan apa-apa di mode konfirmasi
+		return m, nil
 	}
 
 	if m.IsEditing {
-		// === UPDATE SAAT MODE EDIT ===
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.Type {
@@ -255,12 +221,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if newName == "" {
 					m.StatusMessage = "Connection name cannot be empty!"
 					m.StatusType = StatusError
-					return m, m.EditNameInput.Focus() // Fokus kembali ke input nama
+					return m, m.EditNameInput.Focus()
 				}
 				if newKey == "" {
 					m.StatusMessage = "GSocket key cannot be empty!"
 					m.StatusType = StatusError
-					return m, m.EditKeyInput.Focus() // Fokus kembali ke input key
+					return m, m.EditKeyInput.Focus()
 				}
 
 				var tags []string
@@ -272,11 +238,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				var saveErr error
-				if m.EditingIndex == EditingIndexAddNew { // Mode Add New
+				if m.EditingIndex == EditingIndexAddNew {
 					newConn := config.Connection{Name: newName, Key: newKey, Tags: tags, Usage: 0}
 					config.AddConnection(newConn)
 					saveErr = config.Save()
-				} else { // Mode Edit Existing
+				} else {
 					updatedConn := config.Connection{
 						Name:  newName,
 						Key:   newKey,
@@ -308,16 +274,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				newM := NewModel(config.GetCurrent())
 				newM.lastKnownWidth = m.lastKnownWidth
 				newM.lastKnownHeight = m.lastKnownHeight
-				// Tidak ada transfer status message sukses ke newM
 
 				if newM.lastKnownWidth > 0 && newM.lastKnownHeight > 0 {
 					newM.List.SetSize(newM.lastKnownWidth, newM.lastKnownHeight-1)
 				}
-				return newM, nil // Langsung refresh TUI tanpa pesan sukses
+				return newM, nil
 			}
 		}
 
-		// Forward input ke field yang sedang fokus
 		switch m.EditFocusIndex {
 		case focusEditName:
 			m.EditNameInput, cmd = m.EditNameInput.Update(msg)
@@ -330,15 +294,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
-	// === UPDATE SAAT MODE LIST (NORMAL) ===
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.lastKnownWidth = msg.Width
 		m.lastKnownHeight = msg.Height
-		m.List.SetSize(m.lastKnownWidth, m.lastKnownHeight-1) // -1 untuk footer
+		m.List.SetSize(m.lastKnownWidth, m.lastKnownHeight-1)
 		return m, nil
 	case tea.KeyMsg:
-		// Hapus status message error dari mode edit jika ada input lain di mode list
 		if m.StatusMessage != "" && m.StatusType == StatusError {
 			m.StatusMessage = ""
 			m.StatusType = StatusNone
@@ -371,13 +333,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.EditKeyInput.SetValue(selected.Key)
 						m.EditTagsInput.SetValue(strings.Join(selected.Tags, ", "))
 						m.EditFocusIndex = focusEditName
-						// Hapus status message lama sebelum masuk mode edit
 						m.StatusMessage = ""
 						m.StatusType = StatusNone
 						return m, m.EditNameInput.Focus()
 					}
 				}
-			case "d": // Tombol untuk masuk mode Konfirmasi Delete
+			case "d":
 				if len(m.List.VisibleItems()) > 0 {
 					selected, ok := m.List.SelectedItem().(Item)
 					if ok {
@@ -393,16 +354,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.IsConfirmingDelete = true
 							m.DeleteIndex = foundIndex
 							m.DeleteConnectionName = selected.Name
-							m.StatusMessage = "" // Hapus status message lama
+							m.StatusMessage = ""
 							m.StatusType = StatusNone
-							return m, nil // View akan menampilkan konfirmasi
-						} // else: item tidak ditemukan, jangan lakukan apa-apa
+							return m, nil
+						}
 					}
 				}
-			case "a": // Tombol untuk masuk mode Add New
+			case "a":
 				m.IsEditing = true
-				m.EditingIndex = EditingIndexAddNew // Gunakan penanda Add New
-				// Kosongkan form
+				m.EditingIndex = EditingIndexAddNew
 				m.EditNameInput.SetValue("")
 				m.EditKeyInput.SetValue("")
 				m.EditTagsInput.SetValue("")
@@ -426,17 +386,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View untuk BubbleTea model.
 func (m Model) View() string {
 	var b strings.Builder
 
-	if m.StatusMessage != "" && m.StatusType == StatusError { // Hanya tampilkan status jika error
-		statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Padding(0, 1).Bold(true) // Merah
+	if m.StatusMessage != "" && m.StatusType == StatusError {
+		statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Padding(0, 1).Bold(true)
 		b.WriteString(statusStyle.Render(m.StatusMessage) + "\n\n")
 	}
 
-	if m.IsConfirmingDelete { // Tampilan Konfirmasi Delete
-		headerStyle := lipgloss.NewStyle().Bold(true).MarginBottom(1).Foreground(lipgloss.Color("196")) // Merah untuk delete
+	if m.IsConfirmingDelete {
+		headerStyle := lipgloss.NewStyle().Bold(true).MarginBottom(1).Foreground(lipgloss.Color("196"))
 		b.WriteString(headerStyle.Render(fmt.Sprintf("DELETE Connection: %s?", m.DeleteConnectionName)) + "\n\n")
 		promptStyle := lipgloss.NewStyle().MarginBottom(1)
 		b.WriteString(promptStyle.Render(fmt.Sprintf("Are you sure you want to delete '%s'?", m.DeleteConnectionName)) + "\n")
@@ -452,10 +411,9 @@ func (m Model) View() string {
 		if m.EditingIndex == EditingIndexAddNew {
 			formTitle = "Add New Connection (Esc to Cancel)"
 		} else if m.EditingIndex >= 0 && m.EditingIndex < len(config.GetCurrent().Connections) {
-			// Pastikan index valid sebelum akses, meskipun seharusnya sudah aman dari Update
 			formTitle = fmt.Sprintf("Editing Connection: %s (Esc to Cancel)", config.GetCurrent().Connections[m.EditingIndex].Name)
 		} else {
-			formTitle = "Edit Connection (Esc to Cancel)" // Fallback jika index aneh
+			formTitle = "Edit Connection (Esc to Cancel)"
 		}
 		b.WriteString(headerStyle.Render(formTitle) + "\n")
 
@@ -464,7 +422,7 @@ func (m Model) View() string {
 		b.WriteString(inputStyle.Render("Key:   "+m.EditKeyInput.View()) + "\n")
 		b.WriteString(inputStyle.Render("Tags:  "+m.EditTagsInput.View()+" (comma-separated)") + "\n")
 
-		hintText := "(Tab/Shift+Tab • Enter to Save)" // Hint lebih singkat
+		hintText := "(Tab/Shift+Tab • Enter to Save)"
 		b.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(hintText))
 		return b.String()
 	}
@@ -478,7 +436,6 @@ func (m Model) View() string {
 	return b.String()
 }
 
-// updateFocusEdit mengalihkan fokus antar input field di form edit
 func (m *Model) updateFocusEdit(forward bool) tea.Cmd {
 	switch m.EditFocusIndex {
 	case focusEditName:
@@ -503,6 +460,3 @@ func (m *Model) updateFocusEdit(forward bool) tea.Cmd {
 	}
 	return nil
 }
-
-// Definisi ClearStatusMessageMsg sudah tidak diperlukan dan dihapus
-// type ClearStatusMessageMsg struct{}

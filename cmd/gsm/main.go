@@ -1,6 +1,3 @@
-// GSM (GSocket Manager) - Restructured
-// Dependencies: cobra, bubbletea, lipgloss, list
-
 package main
 
 import (
@@ -8,25 +5,14 @@ import (
 	"log"
 	"os"
 
-	// "os/exec" // Tidak lagi dipakai langsung di sini
-	// "runtime" // Tidak lagi dipakai langsung di sini
-	// "strings" // Mungkin tidak dipakai lagi di sini secara langsung
-
-	tea "github.com/charmbracelet/bubbletea" // Untuk tea.NewProgram
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/NumeXx/gsm/pkg/config" // Path modul Go lu
-	"github.com/NumeXx/gsm/pkg/runner" // Package Runner yang baru
-	"github.com/NumeXx/gsm/pkg/tui"    // Package TUI yang baru
-	// "github.com/NumeXx/gsm/pkg/utils" // Tidak jadi dipakai untuk ClearScreen
+	"github.com/NumeXx/gsm/pkg/config"
+	"github.com/NumeXx/gsm/pkg/runner"
+	"github.com/NumeXx/gsm/pkg/tui"
 )
 
-// var chosenConnectionGlobal *item // Sudah pindah ke pkg/tui sebagai tui.ChosenConnectionGlobal
-// const gsNetcatCommand = "gs-netcat" // Sudah pindah ke pkg/runner
-
-// Fungsi clearScreen() sudah tidak relevan lagi dan dihapus.
-
-// === CLI ROOT ===
 var rootCmd = &cobra.Command{
 	Use:   "gsm",
 	Short: "GSocket Manager - Connect seamlessly",
@@ -53,13 +39,10 @@ var rootCmd = &cobra.Command{
 			if tui.ChosenConnectionGlobal != nil {
 				selectedConn := tui.ChosenConnectionGlobal.Connection
 
-				// Panggil runner untuk mengeksekusi koneksi
 				if err := runner.Execute(selectedConn); err != nil {
-					// runner.Execute sudah print pesan disconnected.
-					// Di sini kita bisa log error internal jika perlu, tapi biasanya tidak untuk user.
-					// log.Printf("Session for %s ended with error: %v", selectedConn.Name, err)
+					log.Printf("Session for %s ended with error: %v", selectedConn.Name, err)
 				}
-				fmt.Println("Returning to GSM main menu...") // Pesan ini tetap di sini
+				fmt.Println("Returning to GSM main menu...")
 
 			} else {
 				fmt.Println("Exiting GSM. Thanks for using! See you, bro! 👋")
