@@ -94,6 +94,25 @@ GSM stores its configuration in `~/.gsm/config.json`. It's a simple JSON file. W
 }
 ```
 
+---
+**GSM - Get in, get out, no fuss. Just pure, unadulterated `gsocket` connectivity.**
+
+### 🛣️ Future Enhancements (To-Do)
+
+*   **Quick Connect to Last Used:** Shortcut or command to immediately connect to the last used GSocket connection.
+*   **Quick Connect to Most Used:** Shortcut or command to connect to the most frequently used connection (based on `usage` count).
+*   **Advanced Search/Sort:**
+    *   Sort connections by name, last used, or usage count.
+    *   More specific search queries (e.g., `tag:work status:active`).
+*   **In-TUI 'View Details':** Display connection details without entering edit mode (e.g., with `ctrl+v`).
+*   **Automatic Config Reload:** Use `fsnotify` to detect external changes to `config.json` and reload the TUI.
+*   **UI Polish:**
+    *   Optional borders around the list.
+    *   Auto-clearing status messages (success/error).
+    *   More theme/color options.
+*   **Import/Export Configurations.**
+*   **Password Protection for Keys (Optional):** Encrypt keys stored in `config.json`.
+
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/NumeXx/gsm/issues).
@@ -113,23 +132,3 @@ Distributed under the [MIT License](LICENSE). See `LICENSE` file for more inform
 *   [gsocket](https://github.com/hackerschoice/gsocket) by The Hackers Choice.
 *   [BubbleTea](https://github.com/charmbracelet/bubbletea) & [Lipgloss](https://github.com/charmbracelet/lipgloss) by Charm.
 *   Inspiration from [ssm](https://github.com/lfaoro/ssm).
-
----
-
-**GSM - Get in, get out, no fuss. Just pure, unadulterated `gsocket` connectivity.**
-
-### 🛣️ Future Enhancements (To-Do)
-
-*   **Quick Connect to Last Used:** Shortcut or command to immediately connect to the last used GSocket connection.
-*   **Quick Connect to Most Used:** Shortcut or command to connect to the most frequently used connection (based on `usage` count).
-*   **Advanced Search/Sort:**
-    *   Sort connections by name, last used, or usage count.
-    *   More specific search queries (e.g., `tag:work status:active`).
-*   **In-TUI 'View Details':** Display connection details without entering edit mode (e.g., with `ctrl+v`).
-*   **Automatic Config Reload:** Use `fsnotify` to detect external changes to `config.json` and reload the TUI.
-*   **UI Polish:**
-    *   Optional borders around the list.
-    *   Auto-clearing status messages (success/error).
-    *   More theme/color options.
-*   **Import/Export Configurations.**
-*   **Password Protection for Keys (Optional):** Encrypt keys stored in `config.json`.
