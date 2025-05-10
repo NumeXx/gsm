@@ -44,6 +44,10 @@ func Load() error {
 	if err := json.Unmarshal(data, &currentConfig); err != nil {
 		return fmt.Errorf("failed to unmarshal config data from '%s': %w", path, err)
 	}
+	// Pastikan Connections tidak nil setelah unmarshal, terutama jika file JSON-nya cuma {}
+	if currentConfig.Connections == nil {
+		currentConfig.Connections = []Connection{}
+	}
 	return nil
 }
 
@@ -84,15 +88,14 @@ func AddConnection(conn Connection) {
 	currentConfig.Connections = append(currentConfig.Connections, conn)
 }
 
-// UpdateConnection (Contoh, belum diimplementasikan sepenuhnya)
-// func UpdateConnection(updatedConn Connection) error {
-// 	for i, conn := range currentConfig.Connections {
-// 		if conn.Name == updatedConn.Name { // Asumsi nama unik
-// 			currentConfig.Connections[i] = updatedConn
-// 			return nil
-// 		}
-// 	}
-// 	return fmt.Errorf("connection '%s' not found for update", updatedConn.Name)
-// }
+// UpdateConnectionByIndex memperbarui koneksi pada indeks tertentu dan menyimpan ke file.
+// Mengembalikan error jika indeks di luar jangkauan atau jika gagal menyimpan.
+func UpdateConnectionByIndex(index int, updatedConn Connection) error {
+	if index < 0 || index >= len(currentConfig.Connections) {
+		return fmt.Errorf("index %d out of bounds for connections list (len %d)", index, len(currentConfig.Connections))
+	}
+	currentConfig.Connections[index] = updatedConn
+	return Save() // Langsung simpan setelah update di memori
+}
 
 // TODO: Tambahkan fungsi DeleteConnection jika diperlukan.
