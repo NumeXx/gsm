@@ -1,5 +1,7 @@
 # GSM - GSocket Manager
 
+[![Version](https://img.shields.io/badge/version-v0.2.0-blue)](CHANGELOG.md)
+
 **Connect like there's no firewall, but with style and a kick-ass TUI!**
 
 GSM (GSocket Manager) is a sleek, terminal-based utility to streamline your `gsocket` (Global Socket) connections. Inspired by the simplicity of tools like `ssm` (Secure Shell Manager), GSM brings a user-friendly Terminal User Interface (TUI) to the world of `gsocket`, making it a breeze to manage, connect to, and organize your secure, firewall-bypassing endpoints.
@@ -116,3 +118,19 @@ Distributed under the [MIT License](LICENSE). See `LICENSE` file for more inform
 ---
 
 **GSM - Get in, get out, no fuss. Just pure, unadulterated `gsocket` connectivity.**
+
+### 🛣️ Future Enhancements (To-Do)
+
+*   **Quick Connect to Last Used:** Shortcut or command to immediately connect to the last used GSocket connection.
+*   **Quick Connect to Most Used:** Shortcut or command to connect to the most frequently used connection (based on `usage` count).
+*   **Advanced Search/Sort:**
+    *   Sort connections by name, last used, or usage count.
+    *   More specific search queries (e.g., `tag:work status:active`).
+*   **In-TUI 'View Details':** Display connection details without entering edit mode (e.g., with `ctrl+v`).
+*   **Automatic Config Reload:** Use `fsnotify` to detect external changes to `config.json` and reload the TUI.
+*   **UI Polish:**
+    *   Optional borders around the list.
+    *   Auto-clearing status messages (success/error).
+    *   More theme/color options.
+*   **Import/Export Configurations.**
+*   **Password Protection for Keys (Optional):** Encrypt keys stored in `config.json`.
