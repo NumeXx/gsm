@@ -20,7 +20,6 @@ Stop fumbling with long `gs-netcat` commands and cryptic keys. With GSM, all you
 *   **Configuration Storage:** Connections are stored in a human-readable JSON format (`~/.gsm/config.json`).
 *   **Tagging Support:** Organize your connections with tags.
 *   **(Planned) More advanced filtering and sorting options.**
-*   **(Planned) In-TUI 'View Details' بدون masuk mode edit.**
 
 ## 🚀 Getting Started
 
