@@ -185,10 +185,10 @@ echo -e "\033[1;32m[${APP_NAME}] Successfully installed to: ${INSTALL_DIR}/${APP
 check_path "${INSTALL_DIR}"
 
 echo "[${APP_NAME}] Verifying installation..."
-if ! "${INSTALL_DIR}/${APP_NAME}" --version &>/dev/null; then
-    echo -e "\033[1;33mWarning:\033[0m '${INSTALL_DIR}/${APP_NAME} --version' command failed or produced no output."
+if ! "${INSTALL_DIR}/${APP_NAME}" version &>/dev/null; then
+    echo -e "\033[1;33mWarning:\033[0m '${INSTALL_DIR}/${APP_NAME} version' command failed or produced no output."
 else
-    VERSION_OUTPUT=$("${INSTALL_DIR}/${APP_NAME}" --version)
+    VERSION_OUTPUT=$("${INSTALL_DIR}/${APP_NAME}" version)
     echo "[${APP_NAME}] Verification successful: ${VERSION_OUTPUT}"
 fi
 
