@@ -77,7 +77,7 @@ Download the appropriate archive (`.tar.gz` or `.zip`) for your system, extract 
 
 If you have Go installed and configured (Go 1.18+):
 ```bash
-go install github.com/NumeXx/gsm@latest
+go install github.com/NumeXx/gsm/cmd/gsm@latest
 ```
 Ensure your `$GOPATH/bin` or `$HOME/go/bin` (for Go 1.16+) is in your system's `$PATH`.
 
