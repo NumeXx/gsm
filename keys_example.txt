@@ -1,6 +1,14 @@
-2ggasgTGGf7xnfFTNLbagw#mytag,tag1
-JBfvk5ccRewG5DuLj4bv74#omagat
-Hx9STh2y2moXDh4dHx613y#television
-94DNKyapwAuDyof6YvGss4#nothing
-3zK8EKMQmAT5XXphk9b7Hv#ahahahahah
-5gLdb2mS2ANTW6jFbjFMZN
+ThisIsValidKey#validTag,anotherValidTag
+AnotherOkayKey AlsoThisCommentIsIgnored
+#ThisIsACommentShouldBeSkipped
+    LeadingSpacesValidSecret#tagWithLeadingSpaceInLine
+    
+N0tBase62Start #ThisIsAlsoACommentBecauseNotBase62Start
+!NotASecretAtAll
+ShortKey#tagSK
+VeryLongSecretKeyyyyyyyyyyyyyyyyyyyyyyyyyyyyy#longTag    ThisIsAnotherCommentAfterSpace
+
+DuplicateKey#tagAlpha
+DuplicateKey#tagBeta
+
+SecretWithNoTagsAtAll

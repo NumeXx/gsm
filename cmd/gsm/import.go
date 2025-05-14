@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/NumeXx/gsm/pkg/config"
 	"github.com/NumeXx/gsm/pkg/utils"
@@ -32,8 +33,12 @@ var importCmd = &cobra.Command{
 	Use:   "import",
 	Short: "Import GSocket connections from a key or file",
 	Long: `Import GSocket connections either from a single secret key 
-provided via --secret flag (format: KEY#tag1,tag2), or from a text file 
-containing a list of secret keys (one per line, format: KEY#tag1,tag2).
+provided via --secret flag (format: KEY[#tag1,tag2]), or from a text file 
+containing a list of secret keys (one per line, format: KEY[#tag1,tag2] [optional comments]).
+
+Lines in the file not starting with an alphanumeric character (A-Z, a-z, 0-9) will be skipped.
+For lines starting with an alphanumeric character, only the characters up to the first space or tab
+will be considered as the KEY[#tag] part. Anything after the first space/tab is ignored.
 
 If a name is not implicitly provided, a mnemonic name will be automatically 
 generated based on the secret key. Tags are optional.`,
@@ -65,9 +70,16 @@ generated based on the secret key. Tags are optional.`,
 		connectionsToAdd := []config.Connection{}
 
 		if secretKeyForImport != "" {
-			actualKey, parsedTags := parseKeyAndTags(secretKeyForImport)
+			keyCandidate := strings.TrimSpace(secretKeyForImport)
+
+			if keyCandidate == "" || !isBase62(rune(keyCandidate[0])) {
+				fmt.Fprintf(os.Stderr, "%s%sError: Secret key provided via --secret must start with an alphanumeric character and not be empty.%s\n", ColorBold, ColorRed, ColorReset)
+				os.Exit(1)
+			}
+			actualKey, parsedTags := parseKeyAndTags(keyCandidate)
+
 			if actualKey == "" {
-				fmt.Fprintf(os.Stderr, "%s%sError: Provided secret key via --secret is empty.%s\n", ColorBold, ColorRed, ColorReset)
+				fmt.Fprintf(os.Stderr, "%s%sError: Provided secret key via --secret is effectively empty after parsing.%s\n", ColorBold, ColorRed, ColorReset)
 				os.Exit(1)
 			}
 
@@ -95,46 +107,68 @@ generated based on the secret key. Tags are optional.`,
 			defer file.Close()
 
 			scanner := bufio.NewScanner(file)
-			linesFromFile := []string{}
+			linesToProcess := []string{}
+			lineNum := 0
 			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line == "" {
+				lineNum++
+				originalLine := scanner.Text()
+				trimmedLine := strings.TrimSpace(originalLine)
+
+				if trimmedLine == "" {
 					continue
 				}
-				linesFromFile = append(linesFromFile, line) // Store the original line with potential tags
+
+				if !isBase62(rune(trimmedLine[0])) {
+					fmt.Fprintf(os.Stdout, "%s[ SKIPPED ]%s Line %d does not start with alphanumeric char: \"%s\"%s\n", ColorYellow, ColorReset, lineNum, короткий(originalLine, 30), ColorReset)
+					continue
+				}
+
+				keyCandidateWithPotentialTag := trimmedLine
+				endOfKeyIndex := strings.IndexFunc(trimmedLine, func(r rune) bool {
+					return r == ' ' || r == '\t'
+				})
+				if endOfKeyIndex != -1 {
+					keyCandidateWithPotentialTag = trimmedLine[:endOfKeyIndex]
+				}
+
+				if keyCandidateWithPotentialTag == "" {
+					fmt.Fprintf(os.Stdout, "%s[ SKIPPED ]%s Line %d became empty after isolating key part: \"%s\"%s\n", ColorYellow, ColorReset, lineNum, короткий(originalLine, 30), ColorReset)
+					continue
+				}
+				linesToProcess = append(linesToProcess, keyCandidateWithPotentialTag)
 			}
 			if err := scanner.Err(); err != nil {
 				fmt.Fprintf(os.Stderr, "%s%sError reading file '%s': %v%s\n", ColorBold, ColorRed, filePathForImport, err, ColorReset)
 			}
 
-			if len(linesFromFile) == 0 {
-				fmt.Printf("%s[ INFO ]%s No valid lines found in '%s'. Nothing to import.\n", ColorCyan, ColorReset, filePathForImport)
+			if len(linesToProcess) == 0 {
+				fmt.Printf("%s[ INFO ]%s No processable lines found in '%s'.%s\n", ColorCyan, ColorReset, filePathForImport, ColorReset)
 				os.Exit(0)
 			}
 
-			uniqueKeysInBatch := make(map[string]bool)      // Tracks keys within the current file batch to avoid duplicate processing
-			existingGeneratedNames := make(map[string]bool) // Tracks names already in config or generated in this batch
+			uniqueKeysInBatch := make(map[string]bool)
+			existingGeneratedNames := make(map[string]bool)
 			for _, existingConn := range existingConfig.Connections {
 				existingGeneratedNames[existingConn.Name] = true
 			}
 
-			for _, lineWithPotentialTag := range linesFromFile {
-				actualKey, parsedTags := parseKeyAndTags(lineWithPotentialTag)
+			for i, keyCandidate := range linesToProcess {
+				actualKey, parsedTags := parseKeyAndTags(keyCandidate)
 
 				if actualKey == "" {
-					fmt.Fprintf(os.Stdout, "%s[ SKIPPED ]%s Empty key found in file after parsing line: '%s'.\n", ColorYellow, ColorReset, lineWithPotentialTag)
+					fmt.Fprintf(os.Stdout, "%s[ SKIPPED ]%s Empty key from parsed line (original index %d): '%s'%s\n", ColorYellow, ColorReset, i+1, keyCandidate, ColorReset)
 					continue
 				}
 
 				if uniqueKeysInBatch[actualKey] {
-					fmt.Fprintf(os.Stdout, "%s[ SKIPPED ]%s Duplicate key '%s...' from file (already processed in this batch).\n", ColorYellow, ColorReset, actualKey[:min(len(actualKey), 8)])
+					fmt.Fprintf(os.Stdout, "%s[ SKIPPED ]%s Duplicate key '%s...' from file batch.%s\n", ColorYellow, ColorReset, actualKey[:min(len(actualKey), 8)], ColorReset)
 					continue
 				}
 				uniqueKeysInBatch[actualKey] = true
 
 				mnemonicName, err := utils.GenerateMnemonic(actualKey, numWordsForMnemonic, dictionary)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "%s%sError generating mnemonic for key '%s...' from file: %v. Skipping.%s\n", ColorBold, ColorRed, actualKey[:min(len(actualKey), 8)], err, ColorReset)
+					fmt.Fprintf(os.Stderr, "%s%sError generating mnemonic for key '%s...': %v. Skipping.%s\n", ColorBold, ColorRed, actualKey[:min(len(actualKey), 8)], err, ColorReset)
 					continue
 				}
 
@@ -144,7 +178,7 @@ generated based on the secret key. Tags are optional.`,
 				}
 				connectionsToAdd = append(connectionsToAdd, config.Connection{Name: mnemonicName, Key: actualKey, Tags: parsedTags, Usage: 0})
 				existingGeneratedNames[mnemonicName] = true
-				fmt.Printf("%s[ PREPARED ]%s Name > \"%s\" | Key > \"%s...\" | Tags > %v (from file '%s')\n", ColorYellow, ColorReset, mnemonicName, actualKey[:min(len(actualKey), 8)], parsedTags, filePathForImport)
+				fmt.Printf("%s[ PREPARED ]%s Name > \"%s\" | Key > \"%s...\" | Tags > %v\n", ColorYellow, ColorReset, mnemonicName, actualKey[:min(len(actualKey), 8)], parsedTags)
 			}
 		}
 
@@ -164,8 +198,8 @@ generated based on the secret key. Tags are optional.`,
 }
 
 func init() {
-	importCmd.Flags().StringVarP(&secretKeyForImport, "secret", "s", "", "Single GSocket secret key to import (format: KEY#tag1,tag2)")
-	importCmd.Flags().StringVarP(&filePathForImport, "file", "f", "", "Path to a file with GSocket secret keys (one per line, format: KEY#tag1,tag2)")
+	importCmd.Flags().StringVarP(&secretKeyForImport, "secret", "s", "", "Single GSocket secret key to import (format: KEY[#tag1,tag2])")
+	importCmd.Flags().StringVarP(&filePathForImport, "file", "f", "", "Path to a file with GSocket secret keys (one per line, format: KEY[#tag1,tag2] [optional comments])")
 	// rootCmd.AddCommand(importCmd) // This should be done in the main/root command setup
 }
 
@@ -174,6 +208,17 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func isBase62(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+func короткий(s string, maxLen int) string {
+	if len(s) > maxLen {
+		return s[:maxLen-3] + "..."
+	}
+	return s
 }
 
 func parseKeyAndTags(input string) (string, []string) {

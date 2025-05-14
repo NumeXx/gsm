@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Installer for gsm - GSocket Manager
-# Inspired by get.sh from lfaoro/ssm and best practices.
+# 
+# Copyright (c) 2025 Leonardo Faoro & authors
+# SPDX-License-Identifier: BSD-3-Clause
 
 set -euo pipefail
 

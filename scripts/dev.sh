@@ -1,4 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
+# 
+# Copyright (c) 2025 Leonardo Faoro & authors
+# SPDX-License-Identifier: BSD-3-Clause
 
 # Development script for GSM with live-reloading.
 # Requires inotify-tools to be installed (run 'make dev_setup' or install manually).

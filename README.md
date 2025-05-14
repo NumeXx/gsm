@@ -1,6 +1,6 @@
 # GSM - GSocket Manager
 
-[![Version](https://img.shields.io/badge/version-v0.3.0-blue)](CHANGELOG.md) [![Go Report Card](https://goreportcard.com/badge/github.com/NumeXx/gsm)](https://goreportcard.com/report/github.com/NumeXx/gsm) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-v0.3.1-blue)](CHANGELOG.md) [![Go Report Card](https://goreportcard.com/badge/github.com/NumeXx/gsm)](https://goreportcard.com/report/github.com/NumeXx/gsm) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Connect like there's no firewall, but with style, a kick-ass TUI, and powerful CLI features!**
 
