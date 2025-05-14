@@ -55,15 +55,33 @@ If you need to reliably connect to services hidden behind firewalls/NATs using t
 
 There are several ways to install GSM:
 
-**Option 1: Using `go install` (Recommended for Go users)**
+**Option 1: Using the One-Liner Install Script (Linux/macOS)**
 
-If you have Go installed and configured (Go 1.18+), this is the simplest way:
+This is the quickest way to get the latest release on Linux and macOS:
+```bash
+curl -sSL https://raw.githubusercontent.com/NumeXx/gsm/main/scripts/get.sh | bash
+```
+Or using `wget`:
+```bash
+wget -qO- https://raw.githubusercontent.com/NumeXx/gsm/main/scripts/get.sh | bash
+```
+This script will attempt to install `gsm` to a common binary directory (e.g., `/usr/local/bin` or `~/.local/bin`).
+
+**Option 2: Download Pre-compiled Binaries**
+
+You can download pre-compiled binaries for various operating systems and architectures directly from the **[GitHub Releases Page](https://github.com/NumeXx/gsm/releases/latest)**.
+
+Download the appropriate archive (`.tar.gz` or `.zip`) for your system, extract it, and place the `gsm` binary in a directory included in your system's `$PATH` (e.g., `/usr/local/bin` or `~/bin`). Make sure to give it execute permissions (`chmod +x gsm`).
+
+**Option 3: Using `go install` (For Go users)**
+
+If you have Go installed and configured (Go 1.18+):
 ```bash
 go install github.com/NumeXx/gsm@latest
 ```
-Make sure your `$GOPATH/bin` or `$HOME/go/bin` (for Go 1.16+) is in your system's `$PATH`.
+Ensure your `$GOPATH/bin` or `$HOME/go/bin` (for Go 1.16+) is in your system's `$PATH`.
 
-**Option 2: Using the Makefile (Recommended for building from source)**
+**Option 4: Using the Makefile (For building from source)**
 
 Clone the repository, then use the provided Makefile:
 ```bash
@@ -76,7 +94,7 @@ make build # Builds the binary to ./bin/gsm
 ```
 Run `make help` to see other available targets like `clean`, `test`, etc.
 
-**Option 3: Manual Build from Source**
+**Option 5: Manual Build from Source**
 
 ```bash
 git clone https://github.com/NumeXx/gsm.git
@@ -86,14 +104,6 @@ go build -o gsm ./cmd/gsm/
 # Optional: Move the binary to a directory in your PATH
 # sudo mv gsm /usr/local/bin/
 ```
-
-**Option 4: Pre-compiled Binaries (Coming Soon!)**
-
-We plan to provide pre-compiled binaries for various operating systems and architectures directly from the [GitHub Releases](https://github.com/NumeXx/gsm/releases) page. This will be the easiest way for users who don't have Go installed.
-
-**Option 5: One-Liner Install Script (Coming Soon!)**
-
-Soon, you'll be able to install GSM with a single command using `curl` and `bash` (powered by `scripts/get.sh` which will download the appropriate release binary for your system).
 
 ### Quick Usage
 
@@ -143,16 +153,6 @@ GSM stores its configuration in `~/.gsm/config.json`. While you can view it, usi
       "last_connected": "2023-10-28T10:30:00Z"
     }
 ```
-
-## 🛣️ Future Enhancements (To-Do / Ideas)
-
-*   **More Robust `LastConnected` Formatting:** Relative time (e.g., "5 minutes ago").
-*   **In-TUI "View Full Key" Option:** For very long keys in the detail panel.
-*   **Sort Connections:** By name, last used, usage count within TUI.
-*   **Direct `gs-netcat -g` Integration in TUI Add Form:** Option to generate key directly.
-*   **Export Connections:** CLI command to export to a plain text key file.
-*   **Theme/Color Customization.**
-*   **Support for `gsocket` (the wrapper) in addition to `gs-netcat` for connection execution.**
 
 ## 🤝 Contributing
 
