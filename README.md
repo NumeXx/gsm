@@ -166,7 +166,7 @@ Contributions, issues, and feature requests are welcome! Please feel free to che
 
 ## 📜 License
 
-Distributed under the [MIT License](LICENSE). (Ensure you have a `LICENSE` file in your repo).
+Distributed under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgements
 
