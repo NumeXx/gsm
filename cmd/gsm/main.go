@@ -89,12 +89,23 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number of GSM",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("GSM Version: %s\n", version)
+		fmt.Printf("Commit: %s\n", commit)
+		fmt.Printf("BuildDate: %s\n", date)
+	},
+}
+
 // init function will be called when the package is initialized.
 // We add our importCmd to the rootCmd here.
 func init() {
 	// If there are other initializations for rootCmd, they would be here.
 	// e.g., rootCmd.PersistentFlags().StringVar(...)
 	rootCmd.AddCommand(importCmd) // importCmd is defined in import.go (same package main)
+	rootCmd.AddCommand(versionCmd)
 }
 
 func main() {

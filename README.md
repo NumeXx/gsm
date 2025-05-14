@@ -53,24 +53,47 @@ If you need to reliably connect to services hidden behind firewalls/NATs using t
 
 ### Installation
 
-**Option 1: Using `go install` (Recommended)**
+There are several ways to install GSM:
 
+**Option 1: Using `go install` (Recommended for Go users)**
+
+If you have Go installed and configured (Go 1.18+), this is the simplest way:
 ```bash
 go install github.com/NumeXx/gsm@latest
 ```
-Make sure your `$GOPATH/bin` or `$HOME/go/bin` is in your system's `$PATH`.
+Make sure your `$GOPATH/bin` or `$HOME/go/bin` (for Go 1.16+) is in your system's `$PATH`.
 
-**Option 2: Build from Source**
+**Option 2: Using the Makefile (Recommended for building from source)**
+
+Clone the repository, then use the provided Makefile:
+```bash
+git clone https://github.com/NumeXx/gsm.git
+cd gsm
+make build # Builds the binary to ./bin/gsm
+
+# Optional: Install to /usr/local/bin (requires sudo)
+# make install 
+```
+Run `make help` to see other available targets like `clean`, `test`, etc.
+
+**Option 3: Manual Build from Source**
 
 ```bash
-git clone https://github.com/NumeXx/gsm.git # Replace with your fork if you prefer
+git clone https://github.com/NumeXx/gsm.git
 cd gsm
-go build -o gsm ./cmd/gsm/
-# Optional: Move the binary to your PATH
-sudo mv gsm /usr/local/bin/
+go build -o gsm ./cmd/gsm/ 
+# This creates 'gsm' in the current directory.
+# Optional: Move the binary to a directory in your PATH
+# sudo mv gsm /usr/local/bin/
 ```
 
-**(Coming Soon: Pre-compiled binaries & install scripts)**
+**Option 4: Pre-compiled Binaries (Coming Soon!)**
+
+We plan to provide pre-compiled binaries for various operating systems and architectures directly from the [GitHub Releases](https://github.com/NumeXx/gsm/releases) page. This will be the easiest way for users who don't have Go installed.
+
+**Option 5: One-Liner Install Script (Coming Soon!)**
+
+Soon, you'll be able to install GSM with a single command using `curl` and `bash` (powered by `scripts/get.sh` which will download the appropriate release binary for your system).
 
 ### Quick Usage
 
