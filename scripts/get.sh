@@ -25,32 +25,27 @@ is_writable() {
     local target_dir="$1"
     local test_file_name=".gsm_install_writable_check_$(date +%s%N)"
     
-    # Ensure target directory exists or can be created by current user if it's a user path
     if [[ "$target_dir" == "$HOME"* ]]; then
         if ! mkdir -p "$target_dir" 2>/dev/null; then 
-            # echo "Debug: Could not create user directory $target_dir for writable check." >&2
             return 1
         fi
     elif [[ ! -d "$target_dir" ]]; then
-        # echo "Debug: System directory $target_dir does not exist for writable check." >&2
-        return 1 # Don't try to create system paths like /usr/local/bin
+        return 1 
     fi
 
     TEMP_FILE_CHECK=$(mktemp 2>/dev/null || mktemp -t gsm_check 2>/dev/null) 
     if [[ -z "$TEMP_FILE_CHECK" ]] || [[ ! -f "$TEMP_FILE_CHECK" ]]; then
-        # echo "Debug: Failed to create initial temp file for writable check." >&2
         return 1
     fi
 
     if mv "$TEMP_FILE_CHECK" "${target_dir}/${test_file_name}" 2>/dev/null; then
-        rm -f "${target_dir}/${test_file_name}" # Clean up the test file
-        # TEMP_FILE_CHECK is already gone due to mv, or should be cleaned by trap if mv failed before this rm
-        TEMP_FILE_CHECK="" # Reset variable as it's been moved or is no longer needed as such
-        return 0 # Writable
-    else
-        rm -f "$TEMP_FILE_CHECK" # Clean up if mv failed
+        rm -f "${target_dir}/${test_file_name}" 
         TEMP_FILE_CHECK="" 
-        return 1 # Not writable
+        return 0 
+    else
+        rm -f "$TEMP_FILE_CHECK" 
+        TEMP_FILE_CHECK="" 
+        return 1 
     fi
 }
 
@@ -99,7 +94,6 @@ esac
 
 VERSION_NO_V=${VERSION#v}
 ARCHIVE_NAME="${APP_NAME}_${VERSION_NO_V}_${OS}_${ARCH}.tar.gz"
-# For Windows, GoReleaser usually creates .zip by default
 if [[ "$OS" == "Windows" ]]; then
     ARCHIVE_NAME="${APP_NAME}_${VERSION_NO_V}_${OS}_${ARCH}.zip"
 fi
@@ -109,14 +103,12 @@ echo "[${APP_NAME}] Target: ${OS}/${ARCH}"
 echo "[${APP_NAME}] Download URL: ${DOWNLOAD_URL}"
 
 INSTALL_DIR=""
-# Prioritize user-writable directories in common PATH locations
 if [[ -n "${XDG_BIN_HOME:-}" ]] && mkdir -p "${XDG_BIN_HOME}" && is_writable "${XDG_BIN_HOME}"; then INSTALL_DIR="${XDG_BIN_HOME}"
 elif mkdir -p "${HOME}/.local/bin" && is_writable "${HOME}/.local/bin"; then INSTALL_DIR="${HOME}/.local/bin"
 elif mkdir -p "${HOME}/bin" && is_writable "${HOME}/bin"; then INSTALL_DIR="${HOME}/bin"
 fi
 
-# If no user-writable path found, try /usr/local/bin (might require sudo, script won't use it)
-if [[ -z "$INSTALL_DIR" ]] && [[ "$OS" != "Windows" ]]; then # /usr/local/bin is not typical for Windows
+if [[ -z "$INSTALL_DIR" ]] && [[ "$OS" != "Windows" ]]; then 
     if is_writable "/usr/local/bin"; then 
         INSTALL_DIR="/usr/local/bin"
     fi
@@ -149,14 +141,14 @@ fi
 echo "[${APP_NAME}] Extracting ${APP_NAME}..."
 EXTRACTED_BINARY_PATH="${TEMP_DIR}/${APP_NAME}"
 if [[ "$OS" == "Windows" ]]; then
-    if ! unzip -q "${TEMP_DIR}/${ARCHIVE_NAME}" "${APP_NAME}.exe" -d "${TEMP_DIR}"; then # Try extracting specific exe first
-        unzip -q "${TEMP_DIR}/${ARCHIVE_NAME}" -d "${TEMP_DIR}" # Fallback to extracting all
+    if ! unzip -q "${TEMP_DIR}/${ARCHIVE_NAME}" "${APP_NAME}.exe" -d "${TEMP_DIR}"; then 
+        unzip -q "${TEMP_DIR}/${ARCHIVE_NAME}" -d "${TEMP_DIR}" 
     fi
     EXTRACTED_BINARY_PATH="${TEMP_DIR}/${APP_NAME}.exe"
 else
     if ! tar -xzf "${TEMP_DIR}/${ARCHIVE_NAME}" -C "${TEMP_DIR}" "${APP_NAME}" 2>/dev/null; then 
         if ! tar -xzf "${TEMP_DIR}/${ARCHIVE_NAME}" -C "${TEMP_DIR}" --strip-components=1 "*/${APP_NAME}" 2>/dev/null ; then
-             tar -tzf "${TEMP_DIR}/${ARCHIVE_NAME}" # List contents for debugging
+             tar -tzf "${TEMP_DIR}/${ARCHIVE_NAME}" 
              error_exit "Failed to extract ${APP_NAME} from tar.gz. Archive structure may be unexpected."
         fi
     fi
@@ -168,14 +160,14 @@ if [[ ! -f "${EXTRACTED_BINARY_PATH}" ]]; then
 fi
 
 echo "[${APP_NAME}] Installing to ${INSTALL_DIR}/${APP_NAME}..."
-if ! mv "${EXTRACTED_BINARY_PATH}" "${INSTALL_DIR}/${APP_NAME}"; then # For windows, mv might rename to gsm if .exe is there
+if ! mv "${EXTRACTED_BINARY_PATH}" "${INSTALL_DIR}/${APP_NAME}"; then 
     error_exit "Failed to move ${APP_NAME} to ${INSTALL_DIR}. Check permissions."
 fi
 if [[ "$OS" == "Windows" ]] && [[ -f "${INSTALL_DIR}/${APP_NAME}.exe" ]] && [[ ! -f "${INSTALL_DIR}/${APP_NAME}" ]]; then
-    mv "${INSTALL_DIR}/${APP_NAME}.exe" "${INSTALL_DIR}/${APP_NAME}" # Ensure it's just 'gsm' for consistency if possible
+    mv "${INSTALL_DIR}/${APP_NAME}.exe" "${INSTALL_DIR}/${APP_NAME}" 
 fi
 
-if [[ "$OS" != "Windows" ]]; then # chmod not typically needed or used this way on Windows for .exe
+if [[ "$OS" != "Windows" ]]; then 
     if ! chmod +x "${INSTALL_DIR}/${APP_NAME}"; then
         error_exit "Failed to set executable permissions on ${INSTALL_DIR}/${APP_NAME}."
     fi
@@ -185,10 +177,12 @@ echo -e "\033[1;32m[${APP_NAME}] Successfully installed to: ${INSTALL_DIR}/${APP
 check_path "${INSTALL_DIR}"
 
 echo "[${APP_NAME}] Verifying installation..."
-if ! "${INSTALL_DIR}/${APP_NAME}" version &>/dev/null; then
-    echo -e "\033[1;33mWarning:\033[0m '${INSTALL_DIR}/${APP_NAME} version' command failed or produced no output."
+# MODIFIED: Changed from --version flag to version subcommand
+if ! "${INSTALL_DIR}/${APP_NAME}" version &>/dev/null; then 
+    echo -e "\033[1;33mWarning:\033[0m '${INSTALL_DIR}/${APP_NAME} version' command failed or produced no output." 
 else
-    VERSION_OUTPUT=$("${INSTALL_DIR}/${APP_NAME}" version)
+    # MODIFIED: Changed from --version flag to version subcommand
+    VERSION_OUTPUT=$("${INSTALL_DIR}/${APP_NAME}" version) 
     echo "[${APP_NAME}] Verification successful: ${VERSION_OUTPUT}"
 fi
 
