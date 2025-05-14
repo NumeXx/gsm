@@ -1,7 +1,4 @@
-<p align="left">
-  <img src="assets/img/gsm-logo.png" alt="GSM Logo" width="40" style="vertical-align: middle; margin-right: 8px;">
-  <h3><strong style="font-size: 28px;">GSM - GSocket Manager</strong></h3>
-</p>
+# GSM - GSocket Manager
 
 [![Version](https://img.shields.io/badge/version-v0.3.0-blue)](CHANGELOG.md) [![Go Report Card](https://goreportcard.com/badge/github.com/NumeXx/gsm)](https://goreportcard.com/report/github.com/NumeXx/gsm) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
