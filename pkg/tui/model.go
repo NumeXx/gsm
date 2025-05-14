@@ -3,10 +3,14 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/NumeXx/gsm/pkg/config"
+	"github.com/NumeXx/gsm/pkg/utils"
+	"github.com/NumeXx/gsm/pkg/wordlist"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -17,16 +21,16 @@ type Item struct {
 	config.Connection
 }
 
-func (i Item) Title() string { return fmt.Sprintf("Name : %s", i.Name) }
+func (i Item) Title() string { return i.Name }
 
 func (i Item) Description() string {
 	if len(i.Tags) == 0 {
-		return "Tag  : -"
+		return ""
 	}
-	return fmt.Sprintf("Tag  : %s", strings.Join(i.Tags, ", "))
+	return "# " + strings.Join(i.Tags, ", ")
 }
 
-func (i Item) FilterValue() string { return i.Name + " " + strings.Join(i.Tags, " ") } // Filter berdasarkan Nama dan Tag
+func (i Item) FilterValue() string { return i.Name + " " + strings.Join(i.Tags, " ") }
 
 const (
 	focusEditName = iota
@@ -47,21 +51,21 @@ const (
 )
 
 type Model struct {
-	List            list.Model
-	IsEditing       bool
-	EditNameInput   textinput.Model
-	EditKeyInput    textinput.Model
-	EditTagsInput   textinput.Model
-	EditingIndex    int
-	EditFocusIndex  int
-	lastKnownWidth  int
-	lastKnownHeight int
-
+	List                 list.Model
+	IsEditing            bool
+	EditNameInput        textinput.Model
+	EditKeyInput         textinput.Model
+	EditTagsInput        textinput.Model
+	EditingIndex         int
+	EditFocusIndex       int
+	lastKnownWidth       int
+	lastKnownHeight      int
 	StatusMessage        string
 	StatusType           StatusMessageType
 	IsConfirmingDelete   bool
 	DeleteIndex          int
 	DeleteConnectionName string
+	detailViewport       viewport.Model
 }
 
 func NewModel(cfg config.Config) Model {
@@ -76,7 +80,6 @@ func NewModel(cfg config.Config) Model {
 	l.FilterInput.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	l.FilterInput.TextStyle = lipgloss.NewStyle()
 
-	// Styling TUI
 	titleStyle := lipgloss.NewStyle().
 		Background(lipgloss.Color("23")).
 		Foreground(lipgloss.Color("231")).
@@ -86,8 +89,8 @@ func NewModel(cfg config.Config) Model {
 	l.Styles.Title = titleStyle
 
 	delegate := list.NewDefaultDelegate()
-	delegate.Styles.NormalTitle = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
-	delegate.Styles.NormalDesc = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	delegate.Styles.NormalTitle = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).MaxHeight(1)
+	delegate.Styles.NormalDesc = lipgloss.NewStyle().Foreground(lipgloss.Color("245")).MaxHeight(1)
 	delegate.Styles.SelectedTitle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("231")).
 		Background(lipgloss.Color("32")).
@@ -96,7 +99,8 @@ func NewModel(cfg config.Config) Model {
 	delegate.Styles.SelectedDesc = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("228")).
 		Background(lipgloss.Color("32")).
-		Padding(0, 1)
+		Padding(0, 1).MaxHeight(1)
+	delegate.SetHeight(2)
 	l.SetDelegate(delegate)
 
 	l.SetShowStatusBar(true)
@@ -108,7 +112,7 @@ func NewModel(cfg config.Config) Model {
 	l.SetShowHelp(false)
 
 	ni := textinput.New()
-	ni.Placeholder = "Connection Name (required)"
+	ni.Placeholder = "Name (optional, auto-gen from Key)"
 	ni.CharLimit = 100
 	ni.Width = 50
 
@@ -123,6 +127,8 @@ func NewModel(cfg config.Config) Model {
 
 	ChosenConnectionGlobal = nil
 
+	dvp := viewport.New(0, 0)
+
 	return Model{
 		List:                 l,
 		IsEditing:            false,
@@ -136,6 +142,7 @@ func NewModel(cfg config.Config) Model {
 		IsConfirmingDelete:   false,
 		DeleteIndex:          -1,
 		DeleteConnectionName: "",
+		detailViewport:       dvp,
 	}
 }
 
@@ -143,7 +150,6 @@ func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.List.StartSpinner(),
 		textinput.Blink,
-		tea.ClearScreen,
 	)
 }
 
@@ -169,25 +175,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err := config.Load(); err != nil {
 					m.StatusMessage = fmt.Sprintf("Error reloading config after delete: %v", err)
 					m.StatusType = StatusError
-					return m, nil
+					return m, tea.ClearScreen
 				}
 
 				reloadedCfg := config.GetCurrent()
 				newM := NewModel(reloadedCfg)
 				newM.lastKnownWidth = m.lastKnownWidth
 				newM.lastKnownHeight = m.lastKnownHeight
+				newM.StatusMessage = m.StatusMessage
+				newM.StatusType = m.StatusType
 
 				if newM.lastKnownWidth > 0 && newM.lastKnownHeight > 0 {
 					newM.List.SetSize(newM.lastKnownWidth, newM.lastKnownHeight-1)
 				}
-				return newM, nil
+				return newM, tea.ClearScreen
 			case "n", "esc", "ctrl+c":
 				m.IsConfirmingDelete = false
 				m.DeleteIndex = -1
 				m.DeleteConnectionName = ""
 				m.StatusMessage = "Delete cancelled."
 				m.StatusType = StatusNone
-				return m, nil
+				return m, tea.ClearScreen
 			}
 		}
 		return m, nil
@@ -205,7 +213,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.EditTagsInput.Blur()
 				m.StatusMessage = "Edit cancelled."
 				m.StatusType = StatusNone
-				return m, nil
+				return m, tea.ClearScreen
 			case tea.KeyTab, tea.KeyShiftTab:
 				cmd = m.updateFocusEdit(msg.Type == tea.KeyTab)
 				cmds = append(cmds, cmd)
@@ -214,48 +222,105 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.StatusMessage = ""
 				m.StatusType = StatusNone
 
-				newName := strings.TrimSpace(m.EditNameInput.Value())
-				newKey := strings.TrimSpace(m.EditKeyInput.Value())
-				newTagsRaw := strings.TrimSpace(m.EditTagsInput.Value())
+				nameFromForm := strings.TrimSpace(m.EditNameInput.Value())
+				keyFromForm := strings.TrimSpace(m.EditKeyInput.Value())
+				tagsRawFromForm := strings.TrimSpace(m.EditTagsInput.Value())
 
-				if newName == "" {
+				finalName := nameFromForm
+				generatedNameInfo := ""
+
+				if m.EditingIndex == EditingIndexAddNew && finalName == "" && keyFromForm != "" {
+					dictionary := wordlist.GetWords()
+					if len(dictionary) > 0 {
+						generatedName, err := utils.GenerateMnemonic(keyFromForm, 3, dictionary)
+						if err == nil {
+							finalName = generatedName
+							generatedNameInfo = fmt.Sprintf(" (Name auto-generated: %s)", finalName)
+						} else {
+							m.StatusMessage = fmt.Sprintf("Error generating name: %v. Using key prefix.", err)
+							m.StatusType = StatusError
+							if len(keyFromForm) > 8 {
+								finalName = "GsConn-" + keyFromForm[:8]
+							} else {
+								finalName = "GsConn-" + keyFromForm
+							}
+						}
+					} else {
+						m.StatusMessage = "Wordlist empty. Cannot generate name. Using key prefix."
+						m.StatusType = StatusError
+						if len(keyFromForm) > 8 {
+							finalName = "GsConn-" + keyFromForm[:8]
+						} else {
+							finalName = "GsConn-" + keyFromForm
+						}
+					}
+				}
+
+				if finalName == "" {
 					m.StatusMessage = "Connection name cannot be empty!"
 					m.StatusType = StatusError
 					return m, m.EditNameInput.Focus()
 				}
-				if newKey == "" {
+
+				if keyFromForm == "" {
 					m.StatusMessage = "GSocket key cannot be empty!"
 					m.StatusType = StatusError
 					return m, m.EditKeyInput.Focus()
 				}
 
 				var tags []string
-				if newTagsRaw != "" {
-					tagParts := strings.Split(newTagsRaw, ",")
+				if tagsRawFromForm != "" {
+					tagParts := strings.Split(tagsRawFromForm, ",")
 					for _, t := range tagParts {
 						tags = append(tags, strings.TrimSpace(t))
 					}
 				}
 
 				var saveErr error
+				var successMessage string
+
 				if m.EditingIndex == EditingIndexAddNew {
-					newConn := config.Connection{Name: newName, Key: newKey, Tags: tags, Usage: 0}
+					newConn := config.Connection{Name: finalName, Key: keyFromForm, Tags: tags, Usage: 0}
+					for _, existingConn := range config.GetCurrent().Connections {
+						if existingConn.Name == finalName {
+							m.StatusMessage = fmt.Sprintf("Error: Connection name '%s' already exists!", finalName)
+							m.StatusType = StatusError
+							return m, m.EditNameInput.Focus()
+						}
+					}
 					config.AddConnection(newConn)
 					saveErr = config.Save()
+					successMessage = fmt.Sprintf("Connection '%s' added%s.", finalName, generatedNameInfo)
 				} else {
+					originalName := config.GetCurrent().Connections[m.EditingIndex].Name
+					if originalName != finalName {
+						for i, existingConn := range config.GetCurrent().Connections {
+							if i != m.EditingIndex && existingConn.Name == finalName {
+								m.StatusMessage = fmt.Sprintf("Error: Connection name '%s' already exists!", finalName)
+								m.StatusType = StatusError
+								return m, m.EditNameInput.Focus()
+							}
+						}
+					}
 					updatedConn := config.Connection{
-						Name:  newName,
-						Key:   newKey,
+						Name:  finalName,
+						Key:   keyFromForm,
 						Tags:  tags,
 						Usage: config.GetCurrent().Connections[m.EditingIndex].Usage,
 					}
 					saveErr = config.UpdateConnectionByIndex(m.EditingIndex, updatedConn)
+					successMessage = fmt.Sprintf("Connection '%s' updated.", finalName)
 				}
 
 				if saveErr != nil {
 					m.StatusMessage = fmt.Sprintf("Error saving: %v", saveErr)
 					m.StatusType = StatusError
-					return m, nil
+					return m, m.EditNameInput.Focus()
+				} else {
+					if m.StatusType != StatusError {
+						m.StatusMessage = successMessage
+						m.StatusType = StatusSuccess
+					}
 				}
 
 				m.IsEditing = false
@@ -265,20 +330,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.EditTagsInput.Blur()
 
 				if err := config.Load(); err != nil {
-					m.StatusMessage = fmt.Sprintf("Error reloading config after save: %v", err)
+					m.StatusMessage = fmt.Sprintf("Error reloading config after save: %v. Please restart GSM.", err)
 					m.StatusType = StatusError
-					m.IsEditing = true
-					return m, m.EditNameInput.Focus()
+					return m, tea.ClearScreen
 				}
 
 				newM := NewModel(config.GetCurrent())
 				newM.lastKnownWidth = m.lastKnownWidth
 				newM.lastKnownHeight = m.lastKnownHeight
+				newM.StatusMessage = m.StatusMessage
+				newM.StatusType = m.StatusType
 
 				if newM.lastKnownWidth > 0 && newM.lastKnownHeight > 0 {
 					newM.List.SetSize(newM.lastKnownWidth, newM.lastKnownHeight-1)
 				}
-				return newM, nil
+				return newM, tea.ClearScreen
 			}
 		}
 
@@ -298,9 +364,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.lastKnownWidth = msg.Width
 		m.lastKnownHeight = msg.Height
-		m.List.SetSize(m.lastKnownWidth, m.lastKnownHeight-1)
+		listHeight := m.lastKnownHeight - 2
+		if m.StatusMessage != "" {
+			listHeight--
+		}
+
+		listColumnWidth := (m.lastKnownWidth * 40) / 100
+		detailColumnWidth := m.lastKnownWidth - listColumnWidth - 1
+
+		m.List.SetSize(listColumnWidth, listHeight)
+		m.detailViewport.Width = detailColumnWidth
+		m.detailViewport.Height = listHeight
+
+		if item, ok := m.List.SelectedItem().(Item); ok {
+			m.detailViewport.SetContent(m.renderDetailPanel(item))
+		} else {
+			m.detailViewport.SetContent("No connection selected.")
+		}
 		return m, nil
 	case tea.KeyMsg:
+		if m.IsEditing || m.IsConfirmingDelete {
+			break
+		}
+
 		if m.StatusMessage != "" && m.StatusType == StatusError {
 			m.StatusMessage = ""
 			m.StatusType = StatusNone
@@ -372,9 +458,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.EditNameInput.Focus()
 			}
 		}
-		if msg.Type == tea.KeyEnter && !m.IsEditing {
-			selected, ok := m.List.SelectedItem().(Item)
-			if ok {
+		if msg.Type == tea.KeyEnter && !m.IsEditing && !m.IsConfirmingDelete {
+			if selected, ok := m.List.SelectedItem().(Item); ok {
 				ChosenConnectionGlobal = &selected
 				return m, tea.Quit
 			}
@@ -383,18 +468,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.List, cmd = m.List.Update(msg)
 	cmds = append(cmds, cmd)
+
+	if item, ok := m.List.SelectedItem().(Item); ok {
+		m.detailViewport.SetContent(m.renderDetailPanel(item))
+	} else if len(m.List.Items()) == 0 {
+		m.detailViewport.SetContent("No connections available.")
+	} else {
+		m.detailViewport.SetContent("No connection selected, or list is empty.")
+	}
+
 	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
-	var b strings.Builder
-
-	if m.StatusMessage != "" && m.StatusType == StatusError {
-		statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Padding(0, 1).Bold(true)
-		b.WriteString(statusStyle.Render(m.StatusMessage) + "\n\n")
-	}
-
 	if m.IsConfirmingDelete {
+		var b strings.Builder
 		headerStyle := lipgloss.NewStyle().Bold(true).MarginBottom(1).Foreground(lipgloss.Color("196"))
 		b.WriteString(headerStyle.Render(fmt.Sprintf("DELETE Connection: %s?", m.DeleteConnectionName)) + "\n\n")
 		promptStyle := lipgloss.NewStyle().MarginBottom(1)
@@ -406,6 +494,7 @@ func (m Model) View() string {
 	}
 
 	if m.IsEditing {
+		var formBuilder strings.Builder
 		headerStyle := lipgloss.NewStyle().Bold(true).MarginBottom(1)
 		var formTitle string
 		if m.EditingIndex == EditingIndexAddNew {
@@ -415,25 +504,115 @@ func (m Model) View() string {
 		} else {
 			formTitle = "Edit Connection (Esc to Cancel)"
 		}
-		b.WriteString(headerStyle.Render(formTitle) + "\n")
+		formBuilder.WriteString(headerStyle.Render(formTitle) + "\n")
 
 		inputStyle := lipgloss.NewStyle().MarginBottom(1)
-		b.WriteString(inputStyle.Render("Name:  "+m.EditNameInput.View()) + "\n")
-		b.WriteString(inputStyle.Render("Key:   "+m.EditKeyInput.View()) + "\n")
-		b.WriteString(inputStyle.Render("Tags:  "+m.EditTagsInput.View()+" (comma-separated)") + "\n")
+		formBuilder.WriteString(inputStyle.Render("Name:  "+m.EditNameInput.View()) + "\n")
+		formBuilder.WriteString(inputStyle.Render("Key:   "+m.EditKeyInput.View()) + "\n")
+		formBuilder.WriteString(inputStyle.Render("Tags:  "+m.EditTagsInput.View()+" (comma-separated)") + "\n")
+
+		if m.StatusMessage != "" && (m.StatusType == StatusError || strings.Contains(m.StatusMessage, "generated name")) {
+			var statusStyle lipgloss.Style
+			if m.StatusType == StatusError {
+				statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true).MarginTop(1)
+			} else {
+				statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("242")).MarginTop(1)
+			}
+			formBuilder.WriteString("\n" + statusStyle.Render(m.StatusMessage))
+		}
 
 		hintText := "(Tab/Shift+Tab • Enter to Save)"
-		b.WriteString("\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(hintText))
-		return b.String()
+		formBuilder.WriteString("\n\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(hintText))
+
+		return formBuilder.String()
 	}
 
-	footerText := "↑/↓ navigate • q quit • / filter • e edit • d delete • a add"
+	// Main view: List on the left, Details on the right
+	statusLine := ""
+	if m.StatusMessage != "" {
+		var statusStyle lipgloss.Style
+		if m.StatusType == StatusError {
+			statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true).Padding(0, 1)
+		} else if m.StatusType == StatusSuccess {
+			statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("40")).Bold(true).Padding(0, 1)
+		} else {
+			statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("242")).Padding(0, 1)
+		}
+		statusLine = statusStyle.Render(m.StatusMessage)
+	}
+
+	listColumnWidth := (m.lastKnownWidth * 40) / 100
+	if listColumnWidth < 30 {
+		listColumnWidth = 30
+	}
+	if listColumnWidth > m.lastKnownWidth-25 {
+		listColumnWidth = m.lastKnownWidth - 25
+	}
+	if m.lastKnownWidth < 50 {
+		listColumnWidth = m.lastKnownWidth
+	}
+
+	// Calculate height for list and viewport (panel kanan)
+	availableHeight := m.lastKnownHeight - 1 // Subtract 1 for footer
+	if statusLine != "" {
+		availableHeight-- // Subtract 1 more if status line is visible
+	}
+	if availableHeight < 1 {
+		availableHeight = 1 // Ensure height is at least 1
+	}
+
+	m.List.SetHeight(availableHeight)         // Set list height
+	m.detailViewport.Height = availableHeight // Match viewport height with list height
+
+	listRender := m.List.View()
+	var finalCombinedView string
+	var detailPanelRenderedContent string // Declare here to ensure it's always available
+
+	if m.lastKnownWidth > listColumnWidth+5 { // Only show detail panel if there is enough space
+		detailColumnWidth := m.lastKnownWidth - listColumnWidth - 1
+		m.detailViewport.Width = detailColumnWidth
+		m.detailViewport.Height = availableHeight
+
+		if item, ok := m.List.SelectedItem().(Item); ok {
+			m.detailViewport.SetContent(m.renderDetailPanel(item))
+		} else if len(m.List.Items()) == 0 {
+			m.detailViewport.SetContent("No connections.")
+		} else {
+			m.detailViewport.SetContent("Select a connection.")
+		}
+		detailPanelRenderedContent = m.detailViewport.View()
+
+		separatorStyle := lipgloss.NewStyle().SetString("│").Foreground(lipgloss.Color("239"))
+		separatorHeight := m.detailViewport.Height
+		if separatorHeight < 1 {
+			separatorHeight = 1
+		}
+		separator := separatorStyle.Render(strings.Repeat("\n", separatorHeight-1))
+		finalCombinedView = lipgloss.JoinHorizontal(lipgloss.Top,
+			lipgloss.NewStyle().Width(listColumnWidth).Render(listRender),
+			separator,
+			lipgloss.NewStyle().Width(m.detailViewport.Width).PaddingLeft(1).Render(detailPanelRenderedContent),
+		)
+	} else { // Not enough space for detail panel, list takes full width
+		m.List.SetSize(m.lastKnownWidth, availableHeight)
+		listRender = m.List.View() // Re-render list with full width
+		finalCombinedView = listRender
+		// detailPanelRenderedContent remains empty string, which is fine
+	}
+
+	mainVerticalParts := []string{finalCombinedView}
+	if statusLine != "" {
+		mainVerticalParts = append(mainVerticalParts, statusLine)
+	}
+
+	footerText := "↑/↓ nav • q quit • / filter • e edit • d del • a add • Enter exec"
 	if m.List.FilterState() == list.Filtering {
-		footerText = "esc to clear filter • enter to select (if any)"
+		footerText = "esc clear • enter select"
 	}
 	footerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("242")).Background(lipgloss.Color("235")).Padding(0, 1)
-	b.WriteString(m.List.View() + "\n" + footerStyle.Render(footerText))
-	return b.String()
+	mainVerticalParts = append(mainVerticalParts, footerStyle.Render(footerText))
+
+	return lipgloss.JoinVertical(lipgloss.Left, mainVerticalParts...)
 }
 
 func (m *Model) updateFocusEdit(forward bool) tea.Cmd {
@@ -459,4 +638,44 @@ func (m *Model) updateFocusEdit(forward bool) tea.Cmd {
 		return m.EditTagsInput.Focus()
 	}
 	return nil
+}
+
+func (m Model) renderDetailPanel(item Item) string {
+	var s strings.Builder
+	keyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("242"))
+	valueStyle := lipgloss.NewStyle().Bold(true)
+
+	s.WriteString(valueStyle.Render(item.Name) + "\n\n")
+	s.WriteString(keyStyle.Render("Key: ") + valueStyle.Render(item.Key[:min(len(item.Key), 20)]+"...") + "\n")
+	if len(item.Tags) > 0 {
+		s.WriteString(keyStyle.Render("Tags: ") + valueStyle.Render(strings.Join(item.Tags, ", ")) + "\n")
+	} else {
+		s.WriteString(keyStyle.Render("Tags: ") + valueStyle.Render("-") + "\n")
+	}
+	s.WriteString(keyStyle.Render("Usage: ") + valueStyle.Render(fmt.Sprintf("%d times", item.Usage)) + "\n")
+
+	lastConnectedStr := "Never"
+	if item.LastConnected != nil {
+		if time.Since(*item.LastConnected).Hours() < 24*7 {
+			if time.Now().YearDay() == item.LastConnected.YearDay() && time.Now().Year() == item.LastConnected.Year() {
+				lastConnectedStr = "Today, " + item.LastConnected.Format("15:04")
+			} else if time.Now().YearDay()-1 == item.LastConnected.YearDay() && time.Now().Year() == item.LastConnected.Year() {
+				lastConnectedStr = "Yesterday, " + item.LastConnected.Format("15:04")
+			} else {
+				lastConnectedStr = item.LastConnected.Format("Mon, 2 Jan 15:04")
+			}
+		} else {
+			lastConnectedStr = item.LastConnected.Format("2 Jan 2006")
+		}
+	}
+	s.WriteString(keyStyle.Render("Last Seen: ") + valueStyle.Render(lastConnectedStr) + "\n")
+
+	return s.String()
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

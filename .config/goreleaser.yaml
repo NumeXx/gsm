@@ -1,0 +1,220 @@
+# .config/goreleaser.yaml
+# Make sure to Ccreate this file in .config/goreleaser.yaml relative to project root
+
+version: 2 # Specifies GoReleaser configuration file version.
+
+# Path to the dist directory. Goreleaser will create it if it doesn't exist.
+# All artifacts will be built into this directory.
+dist: build/dist
+
+#report_sizes: true # Uncomment to see the size of the final artifacts.
+
+# Environment variables to be used during the build process.
+env:
+  - GO111MODULE=on # Ensures Go modules are used.
+
+# before hooks are commands that run before the build process starts.
+# Useful for tasks like code generation, formatting, or tidying modules.
+before:
+  hooks:
+    - go mod tidy
+    - go fmt ./...
+    # - go vet ./... # Uncomment if you want to run go vet before building.
+
+# builds section defines how GoReleaser should build your project.
+builds:
+  - # Unique ID for this build configuration.
+    id: gsm
+    # Path to the main package of your application.
+    main: ./cmd/gsm/
+    # Binary name for the output.
+    binary: gsm
+    # Environment variables specific to this build.
+    env:
+      - CGO_ENABLED=0 # Disables CGO for cross-compilation and static builds.
+    # Goos specifies the target operating systems.
+    goos:
+      - linux
+      - darwin # macOS
+      - windows
+      - freebsd
+    # Goarch specifies the target architectures.
+    goarch:
+      - amd64
+      - arm64
+      # - "386" # Uncomment if you need 32-bit Intel support.
+      # - arm   # Uncomment for 32-bit ARM, specify GOARM if needed.
+    # Gotags for build constraints (e.g., for static linking or feature flags).
+    tags:
+      - netgo
+      - osusergo
+      # - static_build # Often used with CGO_ENABLED=0 for more static binaries
+    # Flags passed to the go build command.
+    flags:
+      - -trimpath # Removes all file system paths from the compiled executable.
+      # - -buildvcs=false # Use if you don't want VCS info embedded (Go 1.18+)
+    # Ldflags are linker flags, often used for version injection and optimization.
+    ldflags:
+      - -s -w # Strips debug information and symbol table, reducing binary size.
+      # These inject version information into the binary.
+      # Ensure you have these variables in your main package.
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.CommitDate}}
+      # - -X main.builtBy=goreleaser # Example of another variable
+      # -extldflags '-static' # For truly static builds, might need musl for Linux.
+
+# archives section defines how the built binaries should be packaged.
+archives:
+  - # Unique ID for this archive configuration.
+    id: gsm-archives
+    # Build IDs to include in this archive. Corresponds to the 'id' in the builds section.
+    builds:
+      - gsm
+    # Naming template for the archive files.
+    # Uses Go template syntax and provides variables like .ProjectName, .Version, .Os, .Arch, etc.
+    name_template: >-
+      {{ .ProjectName }}_ {{- .Version }}_ {{- title .Os }}_ {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # Formats for the archives.
+    formats:
+      - tar.gz
+      - zip # Often preferred for Windows.
+    #format_overrides: # Example to use zip only for windows
+    #  - goos: windows
+    #    format: zip
+    # Files to include in the archive in addition to the binary.
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md # If you maintain one
+      # - assets/img/* # If you want to include assets like logos
+
+# checksum section defines how checksums for the artifacts should be generated.
+checksum:
+  # Name template for the checksum file.
+  name_template: 'checksums.txt'
+  # Algorithm for the checksum (e.g., sha256, sha512).
+  algorithm: sha256
+
+# snapshot section defines behavior for snapshot releases (builds from non-tag commits).
+snapshot:
+  # Name template for snapshot releases. Often includes commit hash or timestamp.
+  name_template: "{{ .Version }}-next-{{ .ShortCommit }}"
+
+# changelog section defines how the changelog for releases should be generated.
+changelog:
+  # Sort order for changelog entries (asc or desc).
+  sort: asc
+  # Filters to exclude certain commit messages from the changelog.
+  filters:
+    exclude:
+      - '(?i)^docs?:'         # Exclude documentation changes.
+      - '(?i)^test(?:s|ing)?:' # Exclude test changes.
+      - '(?i)^chore:'          # Exclude chore/maintenance changes.
+      - Merge pull request
+      - Merge branch
+
+# release section defines how GoReleaser should interact with GitHub Releases.
+release:
+  # If set to true, GoReleaser will not create a GitHub release.
+  # disable: false
+  # Specifies the GitHub repository details (owner/name).
+  # Defaults to the origin remote of your Git repository.
+  # github:
+  #   owner: NumeXx
+  #   name: gsm
+  # Name template for the GitHub release.
+  name_template: "{{.Tag}} - {{.ProjectName}}"
+  # If true, GoReleaser will mark the release as a pre-release if the tag is a pre-release tag (e.g., v1.0.0-rc1).
+  prerelease: auto
+  # If true, GoReleaser will create the release as a draft.
+  draft: false
+  # You can add extra files to the GitHub release.
+  # extra_files:
+  #   - glob: ./path/to/your/asset.deb
+  #     name_template: "{{ .ProjectName }}_{{ .Version }}_amd64.deb"
+
+# brews section defines how to publish your tool to a Homebrew tap.
+# This requires you to have a Homebrew tap repository.
+# brews:
+#  - name: gsm
+#    tap:
+#      owner: NumeXx # Your GitHub username or organization
+#      name: homebrew-tap # The name of your tap repository
+#      branch: main # or master
+#      # token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}" # GitHub token for writing to the tap, set as environment variable
+#    # The folder within your tap to put the formula file.
+#    folder: Formula
+#    homepage: "https://github.com/NumeXx/gsm"
+#    description: "GSocket Manager - Connect seamlessly with a TUI."
+#    license: "MIT"
+#    # Optional: specify dependencies, test blocks, etc.
+#    # Caveats, install instructions, etc.
+
+# scoop section for Windows package manager.
+# scoop:
+#   bucket:
+#     owner: NumeXx
+#     name: scoop-bucket
+#     # token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}" # Optional
+#   commit_author:
+#     name: goreleaserbot
+#     email: bot@goreleaser.com
+#   commit_msg_template: "Scoop: Add {{ .ProjectName }} {{ .Version }}"
+#   homepage: "https.github.com/NumeXx/gsm"
+#   description: "GSocket Manager - Connect seamlessly with a TUI."
+#   license: MIT
+
+# nfpm section allows you to create .deb and .rpm packages.
+# nfpms:
+#  - id: gsm-packages
+#    package_name: gsm
+#    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+#    vendor: "NumeXx"
+#    homepage: "https://github.com/NumeXx/gsm"
+#    maintainer: "Your Name <your.email@example.com>" # CHANGE THIS
+#    description: "GSocket Manager - Connect seamlessly with a TUI."
+#    license: "MIT"
+#    formats:
+#      - deb
+#      - rpm
+#    # Dependencies for the packages.
+#    # dependencies:
+#    #   - libc6 # Example
+#    # Recommends/Suggests for the packages.
+#    # recommends:
+#    #   - gs-netcat # If it were a system package
+#    bindir: /usr/bin # Where the binary will be installed
+#    # You can include other files like man pages, config files, etc.
+#    # contents:
+#    # - src: path/to/your/manpage.1
+#    #   dst: /usr/share/man/man1/gsm.1.gz
+#    # - src: path/to/example/config.json
+#    #   dst: /etc/gsm/config.json.example
+#    #   type: config|noreplace
+
+# Universal Binaries for macOS (combines amd64 and arm64 into one). 
+# Disabled by default, as individual arch binaries are usually preferred for clarity.
+# universal_binaries:
+#  - replace: true # If true, replaces the os/arch specific binaries with the universal one.
+#    id: gsm-universal
+
+# signes the checksum file and C0optionally the artifacts
+# signs:
+#   - artifacts: checksum
+#     args: ["-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}"]
+
+# Milestone a Cmilestone for this release
+# milestone:
+#   repo: 
+#     owner: NumeXx
+#     name: gsm
+#   name_template: "{{ .Tag }}" # Template for the Cmilestone name
+#   close: true # If true, GoReleaser will close the milestone on success
+
+# Validation of the GoReleaser configuration file itself.
+# check_boxes:
+#   github_actions: true 
