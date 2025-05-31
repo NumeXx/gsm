@@ -166,8 +166,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.StatusMessage = fmt.Sprintf("Error deleting '%s': %v", m.DeleteConnectionName, err)
 					m.StatusType = StatusError
 				} else {
-					m.StatusMessage = fmt.Sprintf("Connection '%s' deleted.", m.DeleteConnectionName)
-					m.StatusType = StatusSuccess
+					if saveErr := config.Save(); saveErr != nil {
+						m.StatusMessage = fmt.Sprintf("Error saving after deletion: %v", saveErr)
+						m.StatusType = StatusError
+					} else {
+						m.StatusMessage = fmt.Sprintf("Connection '%s' deleted.", m.DeleteConnectionName)
+						m.StatusType = StatusSuccess
+					}
 				}
 				m.IsConfirmingDelete = false
 				m.DeleteIndex = -1

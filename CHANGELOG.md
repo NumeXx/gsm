@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.3.2] - 2025-01-22
+
+### Fixed
+- Fixed critical delete bug in TUI where deleted connections were not saved to config file, causing items to reappear after restart.
+- Added proper `config.Save()` call after successful deletion and improved error handling for save operations.
+
 ## [v0.3.1] - 2025-05-14 
 
 ### Changed
